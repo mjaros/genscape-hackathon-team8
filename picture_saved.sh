@@ -6,4 +6,4 @@ if [[ $# -eq 0 ]]; then
 fi
 
 FILENAME=$1
-curl -X GET "http://127.0.0.1:5000/alarm/new?filename=${FILENAME}"
+curl -X GET "http://127.0.0.1:5000/file/upload?filename=${FILENAME}"

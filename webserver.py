@@ -5,6 +5,7 @@ from flask import request
 
 import RPi.GPIO as GPIO
 import time
+import os
 
 from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
@@ -29,7 +30,7 @@ def json():
 # LED examples
 #
 
-LED_PIN = 23 # Set pin number we are using on the GPIO
+LED_PIN = 24 # Set pin number we are using on the GPIO
 ALARM_PIN = 23
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -61,23 +62,25 @@ def led_toggle():
   GPIO.output(LED_PIN, GPIO.HIGH if led_on else GPIO.LOW)
   return jsonify(led_on=led_on)
 
-@app.route("/alarm/new")
-def new_alarm():
-  global upload_running
-  response = ""
+@app.route("/file/upload")
+def upload_picture():
   filename = request.args.get("filename")
   if not filename:
     return jsonify(message="Filename is missing")
-  if not upload_running:
-    GPIO.output(ALARM_PIN, GPIO.HIGH)
+  else:
     datagen, headers = multipart_encode({"image1": open(filename, "rb")})
     req = urllib2.Request("http://t8.azurewebsites.net/Files/upload", datagen, headers)
-    response = urllib2.urlopen(req).read()
-    time.sleep(1)
-    GPIO.output(ALARM_PIN, GPIO.LOW)
-    return jsonify(message="Alarm created", response=response)
-  else:
-    return jsonify(message="Busy uploading previous video", response="")
+    urllib2.urlopen(req)
+    os.remove(filename)
+    return jsonify(message="File uploaded")
+
+@app.route("/alarm/new")
+def new_alarm():
+  GPIO.output(ALARM_PIN, GPIO.HIGH)
+  req = urllib2.Request('http://t8.azurewebsites.net/Alarms/Add')
+  urllib2.urlopen(req)
+  GPIO.output(ALARM_PIN, GPIO.LOW)
+  return jsonify(message="Alarm created")
 
 if __name__ == "__main__":
   # This will enable hot reloading, so you don't need to restart each time
